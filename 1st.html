@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Bitcoin Price Predictor</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        /* Previous styles remain unchanged */
+        /* Add new styles for additional elements */
+        .profile-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .profile-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .market-indicators {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .indicator-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .alert-banner {
+            background: rgba(255, 215, 0, 0.1);
+            border-left: 4px solid #FFD700;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+        }
+
+        .tab-container {
+            margin: 20px 0;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: black;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Container -->
+    <div class="login-container active" id="loginContainer">
+        <h1><i class="fas fa-bitcoin"></i> Bitcoin Predictor</h1>
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit"><i class="fas fa-sign-in-alt"></i> Login</button>
+            <div style="margin-top: 15px; color: #aaa;">
+                Demo credentials: admin / password
+            </div>
+        </form>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Header Section -->
+        <div class="profile-section">
+            <div class="profile-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div>
+                <h2>Welcome, <span id="userDisplay">User</span></h2>
+                <p>Last login: <span id="lastLogin">Just now</span></p>
+            </div>
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+
+        <!-- Alert Banner -->
+        <div class="alert-banner">
+            <i class="fas fa-info-circle"></i>
+            Market data is updated every 30 seconds. Predictions are based on historical patterns.
+        </div>
+
+        <!-- News Ticker -->
+        <div class="news-ticker">
+            <div class="news-ticker-content" id="newsTicker">
+                Loading latest crypto news...
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-button active" data-tab="overview">Overview</button>
+                <button class="tab-button" data-tab="prediction">Prediction</button>
+                <button class="tab-button" data-tab="analysis">Analysis</button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div class="tab-content active" id="overview">
+                <!-- Market Overview Dashboard -->
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <h3>Current Price</h3>
+                        <div id="livePrice">Loading...</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>24h Change</h3>
+                        <div id="priceChange">Loading...</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Market Sentiment</h3>
+                        <div class="sentiment-indicator">
+                            <div class="sentiment-dot"></div>
+                            <div class="sentiment-dot"></div>
+                            <div class="sentiment-dot"></div>
+                            <div class="sentiment-dot"></div>
+                            <div class="sentiment-dot"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Market Indicators -->
+                <div class="market-indicators">
+                    <div class="indicator-card">
+                        <h4>Volume (24h)</h4>
+                        <div id="volume">Loading...</div>
+                    </div>
+                    <div class="indicator-card">
+                        <h4>Market Cap</h4>
+                        <div id="marketCap">Loading...</div>
+                    </div>
+                    <div class="indicator-card">
+                        <h4>Dominance</h4>
+                        <div id="dominance">Loading...</div>
+                    </div>
+                </div>
+
+                <!-- Price Chart -->
+                <div class="container">
+                    <h3>Price History</h3>
+                    <div class="price-chart">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prediction Tab -->
+            <div class="tab-content" id="prediction">
+                <div class="container">
+                    <h1>Price Prediction Model</h1>
+                    <form id="predictForm">
+                        <div class="tooltip" data-tooltip="Difference between opening and closing prices">
+                            <input type="number" id="open_close" name="open_close" placeholder="Open-Close Difference" required step="0.01">
+                        </div>
+                        <div class="tooltip" data-tooltip="Difference between lowest and highest prices">
+                            <input type="number" id="low_high" name="low_high" placeholder="Low-High Difference" required step="0.01">
+                        </div>
+                        <div class="tooltip" data-tooltip="Is it the end of a financial quarter?">
+                            <input type="number" id="is_quarter_end" name="is_quarter_end" placeholder="Is Quarter End (1 for Yes, 0 for No)" required min="0" max="1">
+                        </div>
+                        <button type="submit"><i class="fas fa-chart-line"></i> Generate Prediction</button>
+                    </form>
+                    <div class="result" id="result"></div>
+                </div>
+            </div>
+
+            <!-- Analysis Tab -->
+            <div class="tab-content" id="analysis">
+                <div class="container">
+                    <h3>Technical Analysis</h3>
+                    <div class="market-indicators">
+                        <div class="indicator-card">
+                            <h4>RSI (14)</h4>
+                            <div id="rsi">Calculating...</div>
+                        </div>
+                        <div class="indicator-card">
+                            <h4>MACD</h4>
+                            <div id="macd">Calculating...</div>
+                        </div>
+                        <div class="indicator-card">
+                            <h4>Moving Average (50)</h4>
+                            <div id="ma50">Calculating...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exchange Links -->
+        <div class="container">
+            <h3>Popular Exchanges</h3>
+            <div class="websites">
+                <div class="website-card">
+                    <img src="/api/placeholder/60/60" alt="Binance">
+                    <a href="https://www.binance.com/" target="_blank">Binance</a>
+                </div>
+                <div class="website-card">
+                    <img src="/api/placeholder/60/60" alt="Coinbase">
+                    <a href="https://www.coinbase.com/" target="_blank">Coinbase</a>
+                </div>
+                <div class="website-card">
+                    <img src="/api/placeholder/60/60" alt="Kraken">
+                    <a href="https://www.kraken.com/" target="_blank">Kraken</a>
+                </div>
+                <div class="website-card">
+                    <img src="/api/placeholder/60/60" alt="Blockchain">
+                    <a href="https://www.blockchain.com/" target="_blank">Blockchain</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Previous JavaScript code remains the same
+        
+        // Add tab switching functionality
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons and contents
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding content
+                button.classList.add('active');
+                document.getElementById(button.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Add mock data for technical indicators
+        function updateTechnicalIndicators() {
+            document.getElementById('rsi').textContent = `${(Math.random() * 40 + 30).toFixed(2)}`;
+            document.getElementById('macd').textContent = `${(Math.random() - 0.5).toFixed(3)}`;
+            document.getElementById('ma50').textContent = `$${(45000 + Math.random() * 1000).toFixed(2)}`;
+            
+            document.getElementById('volume').textContent = `$${(Math.random() * 50 + 20).toFixed(2)}B`;
+            document.getElementById('marketCap').textContent = `$${(Math.random() * 200 + 800).toFixed(2)}B`;
+            document.getElementById('dominance').textContent = `${(Math.random() * 10 + 45).toFixed(2)}%`;
+        }
+
+        // Update technical indicators periodically
+        setInterval(updateTechnicalIndicators, 30000);
+        
+        // Initialize everything
+        function initializeDashboard() {
+            fetchLivePrice();
+            fetchNews();
+            updateSentiment();
+            initializeChart();
+            updateTechnicalIndicators();
+            
+            // Set up periodic updates
+            setInterval(fetchLivePrice, 30000);
+            setInterval(updateSentiment, 60000);
+            
+            // Update user display
+            document.getElementById('userDisplay').textContent = 'Admin';
+            document.getElementById('lastLogin').textContent = new Date().toLocaleString();
+        }
+        
+        // Previous code remains the same
+    </script>
+</body>
+</html>

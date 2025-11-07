@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Price Predictor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .login-container.active {
+            display: block;
+        }
+
+        .main-content {
+            display: none;
+            padding: 20px;
+            width: 100%;
+        }
+
+        .main-content.active {
+            display: block;
+        }
+
+        .container {
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+            margin: 20px auto;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #FFD700;
+            color: #000;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: background 0.3s ease;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #e6c200;
+        }
+
+        .chart-container {
+            margin: 20px auto;
+            width: 90%;
+            max-width: 800px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .chart-container canvas {
+            width: 100%;
+            max-height: 400px;
+        }
+
+        .toggle-mode {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: #FFD700;
+            color: #000;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .toggle-mode:hover {
+            background-color: #e6c200;
+        }
+
+        footer {
+            margin-top: 20px;
+            text-align: center;
+            color: #FFD700;
+        }
+
+        footer a {
+            color: #FFD700;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <button class="toggle-mode" id="toggleMode">Switch to Light Mode</button>
+
+    <div class="login-container active" id="loginContainer">
+        <h1>Login</h1>
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="chart-container">
+            <h1>Bitcoin Price Chart</h1>
+            <canvas id="bitcoinChart"></canvas>
+        </div>
+
+        <div class="container">
+            <h1>Bitcoin Price Predictor</h1>
+            <form id="predictForm">
+                <input type="number" id="open_close" name="open_close" placeholder="Open-Close Difference" required step="0.01">
+                <input type="number" id="low_high" name="low_high" placeholder="Low-High Difference" required step="0.01">
+                <input type="number" id="is_quarter_end" name="is_quarter_end" placeholder="Is Quarter End (1 for Yes, 0 for No)" required min="0" max="1">
+                <button type="submit">Predict</button>
+            </form>
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2025 Bitcoin Price Predictor. <a href="#">Privacy Policy</a> | <a href="#">Contact Us</a></p>
+    </footer>
+
+    <script>
+        const ctx = document.getElementById('bitcoinChart').getContext('2d');
+        const bitcoinChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], // Dates will go here
+                datasets: [{
+                    label: 'Bitcoin Price (USD)',
+                    data: [], // Prices will go here
+                    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+                    borderColor: '#FFD700',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { beginAtZero: false },
+                    y: { beginAtZero: false },
+                },
+            },
+        });
+
+        // Fetch live price and update chart
+        function fetchBitcoinData() {
+            fetch('https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=7')
+                .then(res => res.json())
+                .then(data => {
+                    const dates = data.prices.map(price => new Date(price[0]).toLocaleDateString());
+                    const prices = data.prices.map(price => price[1]);
+
+                    bitcoinChart.data.labels = dates;
+                    bitcoinChart.data.datasets[0].data = prices;
+                    bitcoinChart.update();
+                })
+                .catch(err => console.error('Error fetching Bitcoin data:', err));
+        }
+
+        fetchBitcoinData();
+
+        // Toggle between dark and light mode
+        const toggleModeBtn = document.getElementById('toggleMode');
+        toggleModeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('light-mode');
+            if (document.body.classList.contains('light-mode')) {
+                toggleModeBtn.textContent = 'Switch to Dark Mode';
+                document.body.style.background = '#f4f4f4';
+                document.body.style.color = '#000';
+            } else {
+                toggleModeBtn.textContent = 'Switch to Light Mode';
+                document.body.style.background = 'linear-gradient(135deg, #1e3c72, #2a5298)';
+                document.body.style.color = '#fff';
+            }
+        });
+    </script>
+</body>
+</html>
