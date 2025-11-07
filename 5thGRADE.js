@@ -8,7 +8,8 @@ if(90<=score && score<=100){
 }
 else if(60<=score && score<=59){
     console.log("Grade is C");
-}
+} 
 else{
     console.log("Grade is F");
+
 }
